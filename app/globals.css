@@ -1,26 +1,86 @@
 @import "tailwindcss";
 
+/* ── Warm coffee palette ─────────────────────────────────────────────────── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background:           #FAF6F0;
+  --foreground:           #1C1007;
+  --card:                 #FFFBF5;
+  --card-foreground:      #1C1007;
+  --popover:              #FFFBF5;
+  --popover-foreground:   #1C1007;
+  --primary:              #7C4D2F;
+  --primary-foreground:   #FAF6F0;
+  --secondary:            #EDE0CF;
+  --secondary-foreground: #5C3A1E;
+  --muted:                #EDE0CF;
+  --muted-foreground:     #8B6E54;
+  --accent:               #C8A56A;
+  --accent-foreground:    #1C1007;
+  --destructive:          #DC2626;
+  --destructive-foreground: #fff;
+  --border:               #E0CEBB;
+  --input:                #E0CEBB;
+  --ring:                 #7C4D2F;
+  --radius:               0.75rem;
 }
 
+/* ── Tailwind v4 theme tokens ────────────────────────────────────────────── */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans:   var(--font-sans);
+  --font-serif:  var(--font-serif);
+
+  --color-background:           var(--background);
+  --color-foreground:           var(--foreground);
+  --color-card:                 var(--card);
+  --color-card-foreground:      var(--card-foreground);
+  --color-popover:              var(--popover);
+  --color-popover-foreground:   var(--popover-foreground);
+  --color-primary:              var(--primary);
+  --color-primary-foreground:   var(--primary-foreground);
+  --color-secondary:            var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted:                var(--muted);
+  --color-muted-foreground:     var(--muted-foreground);
+  --color-accent:               var(--accent);
+  --color-accent-foreground:    var(--accent-foreground);
+  --color-destructive:          var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border:               var(--border);
+  --color-input:                var(--input);
+  --color-ring:                 var(--ring);
+
+  --radius-sm:  calc(var(--radius) - 4px);
+  --radius-md:  calc(var(--radius) - 2px);
+  --radius-lg:  var(--radius);
+  --radius-xl:  calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+
+  --shadow-warm: 0 2px 12px color-mix(in srgb, var(--foreground) 8%, transparent);
+  --shadow-card: 0 4px 24px color-mix(in srgb, var(--foreground) 10%, transparent);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ── Base styles ─────────────────────────────────────────────────────────── */
+* {
+  border-color: var(--border);
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "rlig" 1, "calt" 1;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-serif), Georgia, serif;
+}
+
+/* Prevent zoom on input focus iOS */
+input, select, textarea {
+  font-size: 16px;
+}
+
+/* Safe area for mobile bottom nav */
+.pb-safe {
+  padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
 }

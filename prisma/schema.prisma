@@ -1,0 +1,91 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Coffee {
+  id              String        @id @default(cuid())
+
+  coffeeType      CoffeeType    @default(CAFE_CON_LECHE)
+  coffeeTypeOther String?
+
+  temperature     Temperature   @default(CALIENTE)
+  milkType        MilkType      @default(SIN_LECHE)
+  sweetener       SweetenerType @default(SIN_AZUCAR)
+
+  contextType     ContextType   @default(CASA)
+  contextName     String?
+
+  country         String        @default("Argentina")
+
+  datePrecision   DatePrecision @default(EXACT)
+  loggedAt        DateTime?
+  month           Int?
+  year            Int?
+
+  notes           String?
+  companions      Companion[]
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([loggedAt])
+  @@index([month, year])
+  @@index([country])
+  @@index([coffeeType])
+  @@index([contextType])
+}
+
+model Companion {
+  id       String @id @default(cuid())
+  coffeeId String
+  name     String
+  coffee   Coffee @relation(fields: [coffeeId], references: [id], onDelete: Cascade)
+
+  @@index([coffeeId])
+}
+
+enum CoffeeType {
+  CAFE_CON_LECHE
+  FLAT_WHITE
+  ICED_COFFEE_LATTE
+  CAPUCCINO
+  ESPRESSO
+  AMERICANO
+  LATTE
+  MOCHA
+  OTRO
+}
+
+enum Temperature {
+  CALIENTE
+  FRIO
+}
+
+enum MilkType {
+  ENTERA
+  DESCREMADA
+  VEGETAL
+  SIN_LECHE
+}
+
+enum SweetenerType {
+  AZUCAR
+  EDULCORANTE
+  SIN_AZUCAR
+}
+
+enum ContextType {
+  CASA
+  CAFETERIA
+}
+
+enum DatePrecision {
+  EXACT
+  MONTH_ONLY
+}
