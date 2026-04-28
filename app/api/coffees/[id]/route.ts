@@ -10,7 +10,7 @@ const UpdateSchema = z.object({
   temperature:     z.enum(["CALIENTE","FRIO"]).optional(),
   milkType:        z.enum(["ENTERA","DESCREMADA","VEGETAL","SIN_LECHE"]).optional(),
   sweetener:       z.enum(["AZUCAR","EDULCORANTE","SIN_AZUCAR"]).optional(),
-  contextType:     z.enum(["CASA","CAFETERIA"]).optional(),
+  contextType:     z.enum(["CASA","CAFETERIA","CASA_AJENA"]).optional(),
   contextName:     z.string().nullable().optional(),
   country:         z.string().optional(),
   companions:      z.array(z.string()).optional(),

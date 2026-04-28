@@ -10,7 +10,7 @@ const CoffeeSchema = z.object({
   temperature:     z.enum(["CALIENTE","FRIO"]).default("CALIENTE"),
   milkType:        z.enum(["ENTERA","DESCREMADA","VEGETAL","SIN_LECHE"]).default("SIN_LECHE"),
   sweetener:       z.enum(["AZUCAR","EDULCORANTE","SIN_AZUCAR"]).default("SIN_AZUCAR"),
-  contextType:     z.enum(["CASA","CAFETERIA"]).default("CASA"),
+  contextType:     z.enum(["CASA","CAFETERIA","CASA_AJENA"]).default("CASA"),
   contextName:     z.string().optional(),
   country:         z.string().default("Argentina"),
   companions:      z.array(z.string()).default([]),

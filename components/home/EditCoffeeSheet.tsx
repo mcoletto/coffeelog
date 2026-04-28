@@ -1,8 +1,7 @@
 "use client";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
+import { Pencil } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,33 +10,86 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import {
-  COFFEE_TYPE_LABELS, TEMPERATURE_LABELS, MILK_LABELS, SWEETENER_LABELS,
-  CONTEXT_LABELS, COUNTRIES, COMPANION_PRESETS, ALL_COFFEE_TYPES, ALL_MILK_TYPES, ALL_SWEETENERS,
+  COFFEE_TYPE_LABELS, MILK_LABELS, SWEETENER_LABELS,
+  COUNTRIES, COMPANION_PRESETS, ALL_COFFEE_TYPES, ALL_MILK_TYPES, ALL_SWEETENERS,
 } from "@/lib/coffee-types";
-import type { CoffeeType, Temperature, MilkType, SweetenerType, ContextType } from "@prisma/client";
+import type { Coffee, Companion, CoffeeType, Temperature, MilkType, SweetenerType, ContextType } from "@prisma/client";
+
+type CoffeeWithCompanions = Coffee & { companions: Companion[] };
 
 function formatLocalDatetime(d: Date) {
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-export function AddCoffeeSheet({ onAdded }: { onAdded?: () => void }) {
-  const router = useRouter();
+function initLoggedAt(coffee: CoffeeWithCompanions) {
+  if (coffee.datePrecision === "EXACT" && coffee.loggedAt) {
+    return formatLocalDatetime(new Date(coffee.loggedAt));
+  }
+  if (coffee.month && coffee.year) {
+    return formatLocalDatetime(new Date(coffee.year, coffee.month - 1, 1, 12, 0));
+  }
+  return formatLocalDatetime(new Date());
+}
+
+const PRESET_NAMES = COMPANION_PRESETS.map((p) => p.toLowerCase());
+
+interface EditCoffeeSheetProps {
+  coffee: CoffeeWithCompanions;
+  onSaved: (updated: CoffeeWithCompanions) => void;
+}
+
+export function EditCoffeeSheet({ coffee, onSaved }: EditCoffeeSheetProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const [coffeeType, setCoffeeType]   = useState<CoffeeType>("CAFE_CON_LECHE");
-  const [typeOther, setTypeOther]     = useState("");
-  const [temperature, setTemperature] = useState<Temperature>("CALIENTE");
-  const [milkType, setMilkType]       = useState<MilkType>("SIN_LECHE");
-  const [sweetener, setSweetener]     = useState<SweetenerType>("SIN_AZUCAR");
-  const [contextType, setContextType] = useState<ContextType>("CASA");
-  const [contextName, setContextName] = useState("");
-  const [country, setCountry]         = useState("Argentina");
-  const [companions, setCompanions]   = useState<string[]>([]);
-  const [otherPerson, setOtherPerson] = useState("");
-  const [loggedAt, setLoggedAt]       = useState(formatLocalDatetime(new Date()));
-  const [notes, setNotes]             = useState("");
+  const [coffeeType, setCoffeeType]   = useState<CoffeeType>(coffee.coffeeType);
+  const [typeOther, setTypeOther]     = useState(coffee.coffeeTypeOther ?? "");
+  const [temperature, setTemperature] = useState<Temperature>(coffee.temperature);
+  const [milkType, setMilkType]       = useState<MilkType>(coffee.milkType);
+  const [sweetener, setSweetener]     = useState<SweetenerType>(coffee.sweetener);
+  const [contextType, setContextType] = useState<ContextType>(coffee.contextType);
+  const [contextName, setContextName] = useState(coffee.contextName ?? "");
+  const [country, setCountry]         = useState(coffee.country);
+  const [companions, setCompanions]   = useState<string[]>(() =>
+    coffee.companions
+      .filter((c) => PRESET_NAMES.includes(c.name.toLowerCase()))
+      .map((c) => COMPANION_PRESETS.find((p) => p.toLowerCase() === c.name.toLowerCase()) ?? c.name)
+  );
+  const [otherPerson, setOtherPerson] = useState(() =>
+    coffee.companions
+      .filter((c) => !PRESET_NAMES.includes(c.name.toLowerCase()))
+      .map((c) => c.name)
+      .join(", ")
+  );
+  const [loggedAt, setLoggedAt] = useState(() => initLoggedAt(coffee));
+  const [notes, setNotes]       = useState(coffee.notes ?? "");
+
+  // Reset form when sheet opens with the current coffee data
+  useEffect(() => {
+    if (!open) return;
+    setCoffeeType(coffee.coffeeType);
+    setTypeOther(coffee.coffeeTypeOther ?? "");
+    setTemperature(coffee.temperature);
+    setMilkType(coffee.milkType);
+    setSweetener(coffee.sweetener);
+    setContextType(coffee.contextType);
+    setContextName(coffee.contextName ?? "");
+    setCountry(coffee.country);
+    setCompanions(
+      coffee.companions
+        .filter((c) => PRESET_NAMES.includes(c.name.toLowerCase()))
+        .map((c) => COMPANION_PRESETS.find((p) => p.toLowerCase() === c.name.toLowerCase()) ?? c.name)
+    );
+    setOtherPerson(
+      coffee.companions
+        .filter((c) => !PRESET_NAMES.includes(c.name.toLowerCase()))
+        .map((c) => c.name)
+        .join(", ")
+    );
+    setLoggedAt(initLoggedAt(coffee));
+    setNotes(coffee.notes ?? "");
+  }, [open, coffee]);
 
   function toggleCompanion(name: string) {
     setCompanions((prev) =>
@@ -50,82 +102,63 @@ export function AddCoffeeSheet({ onAdded }: { onAdded?: () => void }) {
     setLoading(true);
     try {
       const allCompanions = otherPerson.trim()
-        ? [...companions, otherPerson.trim()]
+        ? [...companions, ...otherPerson.split(",").map((s) => s.trim()).filter(Boolean)]
         : companions;
 
-      const res = await fetch("/api/coffees", {
-        method: "POST",
+      const res = await fetch(`/api/coffees/${coffee.id}`, {
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           coffeeType,
-          coffeeTypeOther: coffeeType === "OTRO" ? typeOther : undefined,
+          coffeeTypeOther: coffeeType === "OTRO" ? typeOther : null,
           temperature,
           milkType,
           sweetener,
           contextType,
-          contextName: contextName.trim() || undefined,
+          contextName: contextName.trim() || null,
           country,
           companions: allCompanions,
-          datePrecision: "EXACT",
           loggedAt: new Date(loggedAt).toISOString(),
-          notes: notes.trim() || undefined,
+          notes: notes.trim() || null,
         }),
       });
 
-      if (!res.ok) throw new Error("Error al guardar");
-
-      toast("☕ Café registrado");
+      if (!res.ok) throw new Error();
+      const updated = await res.json();
+      toast("✏️ Café actualizado");
       setOpen(false);
-      resetForm();
-      router.refresh();
-      onAdded?.();
+      onSaved(updated);
     } catch {
-      toast.error("No se pudo guardar el café");
+      toast.error("No se pudo actualizar");
     } finally {
       setLoading(false);
     }
   }
 
-  function resetForm() {
-    setCoffeeType("CAFE_CON_LECHE");
-    setTypeOther("");
-    setTemperature("CALIENTE");
-    setMilkType("SIN_LECHE");
-    setSweetener("SIN_AZUCAR");
-    setContextType("CASA");
-    setContextName("");
-    setCountry("Argentina");
-    setCompanions([]);
-    setOtherPerson("");
-    setLoggedAt(formatLocalDatetime(new Date()));
-    setNotes("");
-  }
-
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button size="lg" className="w-full rounded-2xl h-13 text-base shadow-warm">
-          <Plus className="h-5 w-5" />
-          Registrar café
-        </Button>
+        <button
+          className="text-muted-foreground hover:text-primary transition-colors ml-1 mt-0.5"
+          aria-label="Editar"
+        >
+          <Pencil className="h-4 w-4" />
+        </button>
       </SheetTrigger>
 
       <SheetContent>
         <SheetHeader>
-          <SheetTitle>Nuevo café</SheetTitle>
+          <SheetTitle>Editar café</SheetTitle>
         </SheetHeader>
 
         <form onSubmit={handleSubmit} className="px-6 pb-8 space-y-6">
 
-          {/* Tipo de café */}
+          {/* Tipo */}
           <div className="space-y-2">
             <Label>Tipo de café</Label>
             <div className="grid grid-cols-3 gap-2">
               {ALL_COFFEE_TYPES.map((type) => (
-                <button
-                  key={type}
-                  type="button"
-                  onClick={() => setCoffeeType(type)}
+                <button key={type} type="button" onClick={() => setCoffeeType(type)}
                   className={cn(
                     "rounded-xl border px-2 py-2.5 text-xs font-medium text-center transition-all",
                     coffeeType === type
@@ -138,11 +171,7 @@ export function AddCoffeeSheet({ onAdded }: { onAdded?: () => void }) {
               ))}
             </div>
             {coffeeType === "OTRO" && (
-              <Input
-                placeholder="¿Qué café es?"
-                value={typeOther}
-                onChange={(e) => setTypeOther(e.target.value)}
-              />
+              <Input placeholder="¿Qué café es?" value={typeOther} onChange={(e) => setTypeOther(e.target.value)} />
             )}
           </div>
 
@@ -151,10 +180,7 @@ export function AddCoffeeSheet({ onAdded }: { onAdded?: () => void }) {
             <Label>Temperatura</Label>
             <div className="flex gap-2">
               {(["CALIENTE", "FRIO"] as Temperature[]).map((t) => (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => setTemperature(t)}
+                <button key={t} type="button" onClick={() => setTemperature(t)}
                   className={cn(
                     "flex-1 rounded-xl border py-2.5 text-sm font-medium transition-all",
                     temperature === t
@@ -173,10 +199,7 @@ export function AddCoffeeSheet({ onAdded }: { onAdded?: () => void }) {
             <Label>Leche</Label>
             <div className="grid grid-cols-2 gap-2">
               {ALL_MILK_TYPES.map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => setMilkType(m)}
+                <button key={m} type="button" onClick={() => setMilkType(m)}
                   className={cn(
                     "rounded-xl border py-2.5 text-xs font-medium transition-all",
                     milkType === m
@@ -195,10 +218,7 @@ export function AddCoffeeSheet({ onAdded }: { onAdded?: () => void }) {
             <Label>Azúcar / Endulzante</Label>
             <div className="flex gap-2">
               {ALL_SWEETENERS.map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => setSweetener(s)}
+                <button key={s} type="button" onClick={() => setSweetener(s)}
                   className={cn(
                     "flex-1 rounded-xl border py-2.5 text-xs font-medium transition-all",
                     sweetener === s
@@ -221,9 +241,7 @@ export function AddCoffeeSheet({ onAdded }: { onAdded?: () => void }) {
                 { value: "CAFETERIA",  label: "☕ Cafetería" },
                 { value: "CASA_AJENA", label: "🏡 Casa de..." },
               ] as { value: ContextType; label: string }[]).map(({ value, label }) => (
-                <button
-                  key={value}
-                  type="button"
+                <button key={value} type="button"
                   onClick={() => { setContextType(value); setContextName(""); }}
                   className={cn(
                     "rounded-xl border py-2.5 text-xs font-medium transition-all",
@@ -251,13 +269,9 @@ export function AddCoffeeSheet({ onAdded }: { onAdded?: () => void }) {
           <div className="space-y-2">
             <Label>País</Label>
             <Select value={country} onValueChange={setCountry}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
+              <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                {COUNTRIES.map((c) => (
-                  <SelectItem key={c} value={c}>{c}</SelectItem>
-                ))}
+                {COUNTRIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
@@ -267,10 +281,7 @@ export function AddCoffeeSheet({ onAdded }: { onAdded?: () => void }) {
             <Label>Con quién</Label>
             <div className="flex flex-wrap gap-2">
               {COMPANION_PRESETS.map((name) => (
-                <button
-                  key={name}
-                  type="button"
-                  onClick={() => toggleCompanion(name)}
+                <button key={name} type="button" onClick={() => toggleCompanion(name)}
                   className={cn(
                     "rounded-full border px-4 py-1.5 text-sm font-medium transition-all",
                     companions.includes(name)
@@ -311,7 +322,7 @@ export function AddCoffeeSheet({ onAdded }: { onAdded?: () => void }) {
           </div>
 
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Guardando…" : "Guardar café"}
+            {loading ? "Guardando…" : "Guardar cambios"}
           </Button>
         </form>
       </SheetContent>

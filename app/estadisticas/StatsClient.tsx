@@ -7,7 +7,7 @@ interface Stats {
   total: number;
   todayCount: number;
   allByType: { type: CoffeeType; count: number }[];
-  allByContext: { CASA: number; CAFETERIA: number };
+  allByContext: { CASA: number; CAFETERIA: number; CASA_AJENA: number };
   allByTemperature: { CALIENTE: number; FRIO: number };
   byCountry: { country: string; count: number }[];
   byCompanion: { name: string; count: number }[];
@@ -36,7 +36,7 @@ function PercentBar({ value, total, color = "bg-primary" }: { value: number; tot
 }
 
 export function StatsClient({ stats }: { stats: Stats }) {
-  const totalContext = stats.allByContext.CASA + stats.allByContext.CAFETERIA;
+  const totalContext = stats.allByContext.CASA + stats.allByContext.CAFETERIA + stats.allByContext.CASA_AJENA;
   const totalTemp    = stats.allByTemperature.CALIENTE + stats.allByTemperature.FRIO;
 
   return (
@@ -141,6 +141,15 @@ export function StatsClient({ stats }: { stats: Stats }) {
             </div>
             <PercentBar value={stats.allByContext.CAFETERIA} total={totalContext} color="bg-accent" />
           </div>
+          {stats.allByContext.CASA_AJENA > 0 && (
+            <div className="space-y-1">
+              <div className="flex justify-between text-sm">
+                <span>🏡 Casa de amigos</span>
+                <span className="text-muted-foreground">{stats.allByContext.CASA_AJENA}</span>
+              </div>
+              <PercentBar value={stats.allByContext.CASA_AJENA} total={totalContext} color="bg-secondary" />
+            </div>
+          )}
         </div>
       </div>
 

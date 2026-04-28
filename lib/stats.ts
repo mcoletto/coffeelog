@@ -61,7 +61,7 @@ export async function getStats() {
 
   const allByContext = all.reduce<Record<ContextType, number>>(
     (acc, c) => { acc[c.contextType] = (acc[c.contextType] ?? 0) + 1; return acc; },
-    { CASA: 0, CAFETERIA: 0 }
+    { CASA: 0, CAFETERIA: 0, CASA_AJENA: 0 }
   );
 
   const allByTemperature = all.reduce<Record<Temperature, number>>(

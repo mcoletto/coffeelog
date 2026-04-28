@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Trash2, SlidersHorizontal, X } from "lucide-react";
@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatCoffeeDate } from "@/lib/utils";
-import { COFFEE_TYPE_LABELS, CONTEXT_LABELS } from "@/lib/coffee-types";
+import { COFFEE_TYPE_LABELS } from "@/lib/coffee-types";
+import { EditCoffeeSheet } from "@/components/home/EditCoffeeSheet";
 import type { Coffee, Companion, CoffeeType, ContextType } from "@prisma/client";
 
 type CoffeeWithCompanions = Coffee & { companions: Companion[] };
@@ -24,6 +25,14 @@ export function HistorialClient({ initialCoffees }: HistorialClientProps) {
   const [filterContext, setFilterContext] = useState<ContextType | "ALL">("ALL");
   const [filterCountry, setFilterCountry] = useState<string>("ALL");
 
+  // Fetch fresh data on every mount so new entries always appear
+  useEffect(() => {
+    fetch("/api/coffees")
+      .then((r) => r.json())
+      .then((data) => setCoffees(data))
+      .catch(() => {});
+  }, []);
+
   const countries = useMemo(() => {
     const set = new Set(coffees.map((c) => c.country));
     return Array.from(set).sort();
@@ -38,7 +47,6 @@ export function HistorialClient({ initialCoffees }: HistorialClientProps) {
     });
   }, [coffees, filterType, filterContext, filterCountry]);
 
-  // Group by date label
   const groups = useMemo(() => {
     const map = new Map<string, CoffeeWithCompanions[]>();
     for (const c of filtered) {
@@ -59,6 +67,10 @@ export function HistorialClient({ initialCoffees }: HistorialClientProps) {
     } else {
       toast.error("No se pudo eliminar");
     }
+  }
+
+  function handleSaved(updated: CoffeeWithCompanions) {
+    setCoffees((prev) => prev.map((c) => c.id === updated.id ? updated : c));
   }
 
   const hasFilters = filterType !== "ALL" || filterContext !== "ALL" || filterCountry !== "ALL";
@@ -97,15 +109,16 @@ export function HistorialClient({ initialCoffees }: HistorialClientProps) {
               </Select>
             </div>
             <div className="space-y-1">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Contexto</p>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Dónde</p>
               <Select value={filterContext} onValueChange={(v) => setFilterContext(v as ContextType | "ALL")}>
                 <SelectTrigger className="h-9 text-xs">
                   <SelectValue placeholder="Todos" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ALL">Todos</SelectItem>
-                  <SelectItem value="CASA">En casa</SelectItem>
+                  <SelectItem value="CASA">Mi casa</SelectItem>
                   <SelectItem value="CAFETERIA">Cafetería</SelectItem>
+                  <SelectItem value="CASA_AJENA">Casa de...</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -135,7 +148,6 @@ export function HistorialClient({ initialCoffees }: HistorialClientProps) {
         </div>
       )}
 
-      {/* Coffee list */}
       {filtered.length === 0 ? (
         <p className="text-sm text-muted-foreground text-center py-12 italic">
           No hay registros para los filtros seleccionados.
@@ -162,6 +174,9 @@ export function HistorialClient({ initialCoffees }: HistorialClientProps) {
                       {coffee.contextType === "CAFETERIA" && (
                         <Badge variant="warm" className="text-[10px]">Cafetería</Badge>
                       )}
+                      {coffee.contextType === "CASA_AJENA" && (
+                        <Badge variant="secondary" className="text-[10px]">Casa de amigos</Badge>
+                      )}
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       {formatCoffeeDate(coffee.datePrecision, coffee.loggedAt, coffee.month, coffee.year)}
@@ -173,13 +188,16 @@ export function HistorialClient({ initialCoffees }: HistorialClientProps) {
                       <p className="text-xs text-muted-foreground italic mt-1">{coffee.notes}</p>
                     )}
                   </div>
-                  <button
-                    onClick={() => deleteCoffee(coffee.id)}
-                    className="text-muted-foreground hover:text-destructive transition-colors ml-1 mt-0.5"
-                    aria-label="Eliminar"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  <div className="flex items-center gap-1 ml-1 mt-0.5">
+                    <EditCoffeeSheet coffee={coffee} onSaved={handleSaved} />
+                    <button
+                      onClick={() => deleteCoffee(coffee.id)}
+                      className="text-muted-foreground hover:text-destructive transition-colors"
+                      aria-label="Eliminar"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

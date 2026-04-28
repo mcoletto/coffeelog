@@ -43,8 +43,9 @@ export const SWEETENER_LABELS: Record<SweetenerType, string> = {
 };
 
 export const CONTEXT_LABELS: Record<ContextType, string> = {
-  CASA:      "En casa",
-  CAFETERIA: "Cafetería",
+  CASA:       "Mi casa",
+  CAFETERIA:  "Cafetería",
+  CASA_AJENA: "Casa de...",
 };
 
 export const COUNTRIES = [
@@ -58,7 +59,7 @@ export const COUNTRIES = [
 
 export type Country = typeof COUNTRIES[number];
 
-export const COMPANION_PRESETS = ["Fede", "Vicu"] as const;
+export const COMPANION_PRESETS = ["Nacho", "Vicu"] as const;
 
 export const ALL_COFFEE_TYPES = Object.keys(COFFEE_TYPE_LABELS) as CoffeeType[];
 export const ALL_MILK_TYPES   = Object.keys(MILK_LABELS) as MilkType[];

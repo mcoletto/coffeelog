@@ -83,6 +83,7 @@ enum SweetenerType {
 enum ContextType {
   CASA
   CAFETERIA
+  CASA_AJENA
 }
 
 enum DatePrecision {
