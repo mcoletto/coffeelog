@@ -1,8 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { Pencil } from "lucide-react";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,59 +14,46 @@ import {
 } from "@/lib/coffee-types";
 import type { Coffee, Companion, CoffeeType, Temperature, MilkType, SweetenerType, ContextType } from "@prisma/client";
 
-type CoffeeWithCompanions = Coffee & { companions: Companion[] };
+export type CoffeeWithCompanions = Coffee & { companions: Companion[] };
 
 function formatLocalDatetime(d: Date) {
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-function initLoggedAt(coffee: CoffeeWithCompanions) {
-  if (coffee.datePrecision === "EXACT" && coffee.loggedAt) {
-    return formatLocalDatetime(new Date(coffee.loggedAt));
-  }
-  if (coffee.month && coffee.year) {
-    return formatLocalDatetime(new Date(coffee.year, coffee.month - 1, 1, 12, 0));
-  }
+function coffeeToDate(coffee: CoffeeWithCompanions): string {
+  if (coffee.loggedAt) return formatLocalDatetime(new Date(coffee.loggedAt));
+  if (coffee.month && coffee.year) return formatLocalDatetime(new Date(coffee.year, coffee.month - 1, 1, 12, 0));
   return formatLocalDatetime(new Date());
 }
 
 const PRESET_NAMES = COMPANION_PRESETS.map((p) => p.toLowerCase());
 
 interface EditCoffeeSheetProps {
-  coffee: CoffeeWithCompanions;
+  coffee: CoffeeWithCompanions | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   onSaved: (updated: CoffeeWithCompanions) => void;
 }
 
-export function EditCoffeeSheet({ coffee, onSaved }: EditCoffeeSheetProps) {
-  const [open, setOpen] = useState(false);
+export function EditCoffeeSheet({ coffee, open, onOpenChange, onSaved }: EditCoffeeSheetProps) {
   const [loading, setLoading] = useState(false);
+  const [coffeeType, setCoffeeType]   = useState<CoffeeType>("CAFE_CON_LECHE");
+  const [typeOther, setTypeOther]     = useState("");
+  const [temperature, setTemperature] = useState<Temperature>("CALIENTE");
+  const [milkType, setMilkType]       = useState<MilkType>("SIN_LECHE");
+  const [sweetener, setSweetener]     = useState<SweetenerType>("SIN_AZUCAR");
+  const [contextType, setContextType] = useState<ContextType>("CASA");
+  const [contextName, setContextName] = useState("");
+  const [country, setCountry]         = useState("Argentina");
+  const [companions, setCompanions]   = useState<string[]>([]);
+  const [otherPerson, setOtherPerson] = useState("");
+  const [loggedAt, setLoggedAt]       = useState(formatLocalDatetime(new Date()));
+  const [notes, setNotes]             = useState("");
 
-  const [coffeeType, setCoffeeType]   = useState<CoffeeType>(coffee.coffeeType);
-  const [typeOther, setTypeOther]     = useState(coffee.coffeeTypeOther ?? "");
-  const [temperature, setTemperature] = useState<Temperature>(coffee.temperature);
-  const [milkType, setMilkType]       = useState<MilkType>(coffee.milkType);
-  const [sweetener, setSweetener]     = useState<SweetenerType>(coffee.sweetener);
-  const [contextType, setContextType] = useState<ContextType>(coffee.contextType);
-  const [contextName, setContextName] = useState(coffee.contextName ?? "");
-  const [country, setCountry]         = useState(coffee.country);
-  const [companions, setCompanions]   = useState<string[]>(() =>
-    coffee.companions
-      .filter((c) => PRESET_NAMES.includes(c.name.toLowerCase()))
-      .map((c) => COMPANION_PRESETS.find((p) => p.toLowerCase() === c.name.toLowerCase()) ?? c.name)
-  );
-  const [otherPerson, setOtherPerson] = useState(() =>
-    coffee.companions
-      .filter((c) => !PRESET_NAMES.includes(c.name.toLowerCase()))
-      .map((c) => c.name)
-      .join(", ")
-  );
-  const [loggedAt, setLoggedAt] = useState(() => initLoggedAt(coffee));
-  const [notes, setNotes]       = useState(coffee.notes ?? "");
-
-  // Reset form when sheet opens with the current coffee data
+  // Reset form whenever the coffee changes (new edit target)
   useEffect(() => {
-    if (!open) return;
+    if (!coffee) return;
     setCoffeeType(coffee.coffeeType);
     setTypeOther(coffee.coffeeTypeOther ?? "");
     setTemperature(coffee.temperature);
@@ -87,9 +73,9 @@ export function EditCoffeeSheet({ coffee, onSaved }: EditCoffeeSheetProps) {
         .map((c) => c.name)
         .join(", ")
     );
-    setLoggedAt(initLoggedAt(coffee));
+    setLoggedAt(coffeeToDate(coffee));
     setNotes(coffee.notes ?? "");
-  }, [open, coffee]);
+  }, [coffee]);
 
   function toggleCompanion(name: string) {
     setCompanions((prev) =>
@@ -99,6 +85,7 @@ export function EditCoffeeSheet({ coffee, onSaved }: EditCoffeeSheetProps) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!coffee) return;
     setLoading(true);
     try {
       const allCompanions = otherPerson.trim()
@@ -126,7 +113,7 @@ export function EditCoffeeSheet({ coffee, onSaved }: EditCoffeeSheetProps) {
       if (!res.ok) throw new Error();
       const updated = await res.json();
       toast("✏️ Café actualizado");
-      setOpen(false);
+      onOpenChange(false);
       onSaved(updated);
     } catch {
       toast.error("No se pudo actualizar");
@@ -135,17 +122,10 @@ export function EditCoffeeSheet({ coffee, onSaved }: EditCoffeeSheetProps) {
     }
   }
 
-  return (
-    <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        <button
-          className="text-muted-foreground hover:text-primary transition-colors ml-1 mt-0.5"
-          aria-label="Editar"
-        >
-          <Pencil className="h-4 w-4" />
-        </button>
-      </SheetTrigger>
+  if (!coffee) return null;
 
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent>
         <SheetHeader>
           <SheetTitle>Editar café</SheetTitle>

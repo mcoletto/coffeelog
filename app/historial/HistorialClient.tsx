@@ -2,16 +2,17 @@
 import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Trash2, SlidersHorizontal, X } from "lucide-react";
+import { Trash2, SlidersHorizontal, X, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatCoffeeDate } from "@/lib/utils";
 import { COFFEE_TYPE_LABELS } from "@/lib/coffee-types";
-import { EditCoffeeSheet } from "@/components/home/EditCoffeeSheet";
+import { EditCoffeeSheet, type CoffeeWithCompanions } from "@/components/home/EditCoffeeSheet";
 import type { Coffee, Companion, CoffeeType, ContextType } from "@prisma/client";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type _unused = Coffee | Companion; // keep imports used
 
-type CoffeeWithCompanions = Coffee & { companions: Companion[] };
 
 interface HistorialClientProps {
   initialCoffees: CoffeeWithCompanions[];
@@ -19,7 +20,8 @@ interface HistorialClientProps {
 
 export function HistorialClient({ initialCoffees }: HistorialClientProps) {
   const router = useRouter();
-  const [coffees, setCoffees] = useState(initialCoffees);
+  const [coffees, setCoffees] = useState<CoffeeWithCompanions[]>(initialCoffees);
+  const [editing, setEditing] = useState<CoffeeWithCompanions | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [filterType, setFilterType]       = useState<CoffeeType | "ALL">("ALL");
   const [filterContext, setFilterContext] = useState<ContextType | "ALL">("ALL");
@@ -71,12 +73,19 @@ export function HistorialClient({ initialCoffees }: HistorialClientProps) {
 
   function handleSaved(updated: CoffeeWithCompanions) {
     setCoffees((prev) => prev.map((c) => c.id === updated.id ? updated : c));
+    setEditing(null);
   }
 
   const hasFilters = filterType !== "ALL" || filterContext !== "ALL" || filterCountry !== "ALL";
 
   return (
     <div className="space-y-4">
+      <EditCoffeeSheet
+        coffee={editing}
+        open={!!editing}
+        onOpenChange={(o) => { if (!o) setEditing(null); }}
+        onSaved={handleSaved}
+      />
       {/* Filter toggle */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">{filtered.length} registros</p>
@@ -189,7 +198,13 @@ export function HistorialClient({ initialCoffees }: HistorialClientProps) {
                     )}
                   </div>
                   <div className="flex items-center gap-1 ml-1 mt-0.5">
-                    <EditCoffeeSheet coffee={coffee} onSaved={handleSaved} />
+                    <button
+                      onClick={() => setEditing(coffee)}
+                      className="text-muted-foreground hover:text-primary transition-colors p-1"
+                      aria-label="Editar"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
                     <button
                       onClick={() => deleteCoffee(coffee.id)}
                       className="text-muted-foreground hover:text-destructive transition-colors"
