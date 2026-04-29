@@ -50,8 +50,15 @@ export function HistorialClient({ initialCoffees }: HistorialClientProps) {
   }, [coffees, filterType, filterContext, filterCountry]);
 
   const groups = useMemo(() => {
+    const sorted = [...filtered].sort((a, b) => {
+      const toMs = (c: CoffeeWithCompanions) =>
+        c.loggedAt ? new Date(c.loggedAt).getTime()
+        : c.year && c.month ? new Date(c.year, c.month - 1, 1).getTime()
+        : 0;
+      return toMs(b) - toMs(a); // más reciente primero
+    });
     const map = new Map<string, CoffeeWithCompanions[]>();
-    for (const c of filtered) {
+    for (const c of sorted) {
       const key = formatCoffeeDate(c.datePrecision, c.loggedAt, c.month, c.year).split(",")[0];
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(c);
