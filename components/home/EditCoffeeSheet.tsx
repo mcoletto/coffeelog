@@ -59,8 +59,13 @@ export function EditCoffeeSheet({ coffee, open, onOpenChange, onSaved }: EditCof
       .map((c) => c.name)
       .join(", ")
   );
-  const [loggedAt, setLoggedAt] = useState(() => coffee ? coffeeToDate(coffee) : formatLocalDatetime(new Date()));
-  const [notes, setNotes]       = useState(coffee?.notes ?? "");
+  const [datePrecision, setDatePrecision] = useState<"EXACT" | "MONTH_ONLY">(coffee?.datePrecision ?? "EXACT");
+  const [loggedAt, setLoggedAt] = useState(() =>
+    coffee?.loggedAt ? formatLocalDatetime(new Date(coffee.loggedAt)) : formatLocalDatetime(new Date())
+  );
+  const [month, setMonth] = useState<number>(coffee?.month ?? new Date().getMonth() + 1);
+  const [year, setYear]   = useState<number>(coffee?.year ?? new Date().getFullYear());
+  const [notes, setNotes] = useState(coffee?.notes ?? "");
 
   function toggleCompanion(name: string) {
     setCompanions((prev) =>
@@ -90,7 +95,10 @@ export function EditCoffeeSheet({ coffee, open, onOpenChange, onSaved }: EditCof
           contextName: contextName.trim() || null,
           country,
           companions: allCompanions,
-          loggedAt: new Date(loggedAt).toISOString(),
+          datePrecision,
+          ...(datePrecision === "EXACT"
+            ? { loggedAt: new Date(loggedAt).toISOString(), month: null, year: null }
+            : { loggedAt: null, month, year }),
           notes: notes.trim() || null,
         }),
       });
@@ -265,14 +273,51 @@ export function EditCoffeeSheet({ coffee, open, onOpenChange, onSaved }: EditCof
             />
           </div>
 
-          {/* Fecha y hora */}
+          {/* Fecha */}
           <div className="space-y-2">
-            <Label>Fecha y hora</Label>
-            <Input
-              type="datetime-local"
-              value={loggedAt}
-              onChange={(e) => setLoggedAt(e.target.value)}
-            />
+            <Label>Fecha</Label>
+            <div className="flex gap-2">
+              {(["EXACT", "MONTH_ONLY"] as const).map((p) => (
+                <button key={p} type="button" onClick={() => setDatePrecision(p)}
+                  className={cn(
+                    "flex-1 rounded-xl border py-2.5 text-xs font-medium transition-all",
+                    datePrecision === p
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-card text-foreground hover:bg-secondary"
+                  )}
+                >
+                  {p === "EXACT" ? "Fecha exacta" : "Solo mes"}
+                </button>
+              ))}
+            </div>
+            {datePrecision === "EXACT" ? (
+              <Input
+                type="datetime-local"
+                value={loggedAt}
+                onChange={(e) => setLoggedAt(e.target.value)}
+              />
+            ) : (
+              <div className="flex gap-2">
+                <Select value={String(month)} onValueChange={(v) => setMonth(Number(v))}>
+                  <SelectTrigger className="flex-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"].map((m, i) => (
+                      <SelectItem key={i + 1} value={String(i + 1)}>{m}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input
+                  type="number"
+                  className="w-24"
+                  value={year}
+                  onChange={(e) => setYear(Number(e.target.value))}
+                  min={2020}
+                  max={2099}
+                />
+              </div>
+            )}
           </div>
 
           {/* Nota */}

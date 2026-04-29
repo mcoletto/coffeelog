@@ -14,7 +14,10 @@ const UpdateSchema = z.object({
   contextName:     z.string().nullable().optional(),
   country:         z.string().optional(),
   companions:      z.array(z.string()).optional(),
-  loggedAt:        z.string().optional(),
+  datePrecision:   z.enum(["EXACT","MONTH_ONLY"]).optional(),
+  loggedAt:        z.string().nullable().optional(),
+  month:           z.number().int().min(1).max(12).nullable().optional(),
+  year:            z.number().int().nullable().optional(),
   notes:           z.string().nullable().optional(),
 });
 
@@ -33,13 +36,17 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const { id } = await params;
     const body = await req.json();
     const data = UpdateSchema.parse(body);
-    const { companions, loggedAt, ...rest } = data;
+    const { companions, loggedAt, datePrecision, month, year, ...rest } = data;
 
     const coffee = await prisma.coffee.update({
       where: { id },
       data: {
         ...rest,
-        ...(loggedAt && { loggedAt: new Date(loggedAt), datePrecision: "EXACT" }),
+        ...(datePrecision === "EXACT" && loggedAt
+          ? { datePrecision: "EXACT", loggedAt: new Date(loggedAt), month: null, year: null }
+          : datePrecision === "MONTH_ONLY"
+          ? { datePrecision: "MONTH_ONLY", loggedAt: null, month, year }
+          : {}),
         ...(companions !== undefined && {
           companions: {
             deleteMany: {},
