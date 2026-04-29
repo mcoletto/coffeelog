@@ -88,6 +88,7 @@ export function HistorialClient({ initialCoffees }: HistorialClientProps) {
   return (
     <div className="space-y-4">
       <EditCoffeeSheet
+        key={editing?.id ?? "none"}
         coffee={editing}
         open={!!editing}
         onOpenChange={(o) => { if (!o) setEditing(null); }}

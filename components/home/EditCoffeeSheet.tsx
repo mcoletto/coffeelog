@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -38,44 +38,29 @@ interface EditCoffeeSheetProps {
 
 export function EditCoffeeSheet({ coffee, open, onOpenChange, onSaved }: EditCoffeeSheetProps) {
   const [loading, setLoading] = useState(false);
-  const [coffeeType, setCoffeeType]   = useState<CoffeeType>("CAFE_CON_LECHE");
-  const [typeOther, setTypeOther]     = useState("");
-  const [temperature, setTemperature] = useState<Temperature>("CALIENTE");
-  const [milkType, setMilkType]       = useState<MilkType>("SIN_LECHE");
-  const [sweetener, setSweetener]     = useState<SweetenerType>("SIN_AZUCAR");
-  const [contextType, setContextType] = useState<ContextType>("CASA");
-  const [contextName, setContextName] = useState("");
-  const [country, setCountry]         = useState("Argentina");
-  const [companions, setCompanions]   = useState<string[]>([]);
-  const [otherPerson, setOtherPerson] = useState("");
-  const [loggedAt, setLoggedAt]       = useState(formatLocalDatetime(new Date()));
-  const [notes, setNotes]             = useState("");
-
-  // Reset form whenever the coffee changes (new edit target)
-  useEffect(() => {
-    if (!coffee) return;
-    setCoffeeType(coffee.coffeeType);
-    setTypeOther(coffee.coffeeTypeOther ?? "");
-    setTemperature(coffee.temperature);
-    setMilkType(coffee.milkType);
-    setSweetener(coffee.sweetener);
-    setContextType(coffee.contextType);
-    setContextName(coffee.contextName ?? "");
-    setCountry(coffee.country);
-    setCompanions(
-      coffee.companions
-        .filter((c) => PRESET_NAMES.includes(c.name.toLowerCase()))
-        .map((c) => COMPANION_PRESETS.find((p) => p.toLowerCase() === c.name.toLowerCase()) ?? c.name)
-    );
-    setOtherPerson(
-      coffee.companions
-        .filter((c) => !PRESET_NAMES.includes(c.name.toLowerCase()))
-        .map((c) => c.name)
-        .join(", ")
-    );
-    setLoggedAt(coffeeToDate(coffee));
-    setNotes(coffee.notes ?? "");
-  }, [coffee]);
+  // State initialised directly from coffee — component is remounted via key={coffee.id}
+  // so these always reflect the correct record without needing a useEffect.
+  const [coffeeType, setCoffeeType]   = useState<CoffeeType>(coffee?.coffeeType ?? "CAFE_CON_LECHE");
+  const [typeOther, setTypeOther]     = useState(coffee?.coffeeTypeOther ?? "");
+  const [temperature, setTemperature] = useState<Temperature>(coffee?.temperature ?? "CALIENTE");
+  const [milkType, setMilkType]       = useState<MilkType>(coffee?.milkType ?? "SIN_LECHE");
+  const [sweetener, setSweetener]     = useState<SweetenerType>(coffee?.sweetener ?? "SIN_AZUCAR");
+  const [contextType, setContextType] = useState<ContextType>(coffee?.contextType ?? "CASA");
+  const [contextName, setContextName] = useState(coffee?.contextName ?? "");
+  const [country, setCountry]         = useState(coffee?.country ?? "Argentina");
+  const [companions, setCompanions]   = useState<string[]>(() =>
+    (coffee?.companions ?? [])
+      .filter((c) => PRESET_NAMES.includes(c.name.toLowerCase()))
+      .map((c) => COMPANION_PRESETS.find((p) => p.toLowerCase() === c.name.toLowerCase()) ?? c.name)
+  );
+  const [otherPerson, setOtherPerson] = useState(() =>
+    (coffee?.companions ?? [])
+      .filter((c) => !PRESET_NAMES.includes(c.name.toLowerCase()))
+      .map((c) => c.name)
+      .join(", ")
+  );
+  const [loggedAt, setLoggedAt] = useState(() => coffee ? coffeeToDate(coffee) : formatLocalDatetime(new Date()));
+  const [notes, setNotes]       = useState(coffee?.notes ?? "");
 
   function toggleCompanion(name: string) {
     setCompanions((prev) =>
