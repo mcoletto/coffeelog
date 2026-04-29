@@ -50,20 +50,30 @@ export function HistorialClient({ initialCoffees }: HistorialClientProps) {
   }, [coffees, filterType, filterContext, filterCountry]);
 
   const groups = useMemo(() => {
-    const sorted = [...filtered].sort((a, b) => {
-      const toMs = (c: CoffeeWithCompanions) =>
-        c.loggedAt ? new Date(c.loggedAt).getTime()
-        : c.year && c.month ? new Date(c.year, c.month - 1, 1).getTime()
-        : 0;
-      return toMs(b) - toMs(a); // más reciente primero
-    });
-    const map = new Map<string, CoffeeWithCompanions[]>();
-    for (const c of sorted) {
-      const key = formatCoffeeDate(c.datePrecision, c.loggedAt, c.month, c.year).split(",")[0];
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(c);
+    const MONTHS = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+
+    function toMonthKey(c: CoffeeWithCompanions): string {
+      if (c.loggedAt) {
+        const d = new Date(c.loggedAt);
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      }
+      if (c.month && c.year) return `${c.year}-${String(c.month).padStart(2, "0")}`;
+      return "0000-00";
     }
-    return Array.from(map.entries());
+
+    const sorted = [...filtered].sort((a, b) => toMonthKey(b).localeCompare(toMonthKey(a)));
+
+    const map = new Map<string, { label: string; items: CoffeeWithCompanions[] }>();
+    for (const c of sorted) {
+      const key = toMonthKey(c);
+      if (!map.has(key)) {
+        const [y, m] = key.split("-").map(Number);
+        const label = key === "0000-00" ? "Fecha desconocida" : `${MONTHS[m - 1]} ${y}`;
+        map.set(key, { label, items: [] });
+      }
+      map.get(key)!.items.push(c);
+    }
+    return Array.from(map.entries()).map(([, v]) => v);
   }, [filtered]);
 
   async function deleteCoffee(id: string) {
@@ -171,9 +181,9 @@ export function HistorialClient({ initialCoffees }: HistorialClientProps) {
         </p>
       ) : (
         <div className="space-y-6">
-          {groups.map(([dateLabel, items]) => (
-            <div key={dateLabel} className="space-y-2">
-              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide px-1">{dateLabel}</p>
+          {groups.map(({ label, items }) => (
+            <div key={label} className="space-y-2">
+              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide px-1">{label}</p>
               {items.map((coffee) => (
                 <div
                   key={coffee.id}
