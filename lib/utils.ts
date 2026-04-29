@@ -16,9 +16,9 @@ export function formatCoffeeDate(
 ): string {
   if (datePrecision === "EXACT" && loggedAt) {
     const d = typeof loggedAt === "string" ? parseISO(loggedAt) : loggedAt;
-    if (isToday(d)) return `Hoy, ${format(d, "HH:mm")}`;
-    if (isYesterday(d)) return `Ayer, ${format(d, "HH:mm")}`;
-    return format(d, "d MMM, HH:mm", { locale: es });
+    if (isToday(d)) return "Hoy";
+    if (isYesterday(d)) return "Ayer";
+    return format(d, "d MMM", { locale: es });
   }
   if (month && year) {
     const monthNames = [

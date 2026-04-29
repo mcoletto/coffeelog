@@ -16,9 +16,9 @@ import {
 } from "@/lib/coffee-types";
 import type { CoffeeType, Temperature, MilkType, SweetenerType, ContextType } from "@prisma/client";
 
-function formatLocalDatetime(d: Date) {
+function formatLocalDate(d: Date) {
   const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
 export function AddCoffeeSheet({ onAdded }: { onAdded?: () => void }) {
@@ -36,7 +36,7 @@ export function AddCoffeeSheet({ onAdded }: { onAdded?: () => void }) {
   const [country, setCountry]         = useState("Argentina");
   const [companions, setCompanions]   = useState<string[]>([]);
   const [otherPerson, setOtherPerson] = useState("");
-  const [loggedAt, setLoggedAt]       = useState(formatLocalDatetime(new Date()));
+  const [loggedAt, setLoggedAt]       = useState(formatLocalDate(new Date()));
   const [notes, setNotes]             = useState("");
 
   function toggleCompanion(name: string) {
@@ -67,7 +67,7 @@ export function AddCoffeeSheet({ onAdded }: { onAdded?: () => void }) {
           country,
           companions: allCompanions,
           datePrecision: "EXACT",
-          loggedAt: new Date(loggedAt).toISOString(),
+          loggedAt: new Date(loggedAt + "T12:00:00").toISOString(),
           notes: notes.trim() || undefined,
         }),
       });
@@ -97,7 +97,7 @@ export function AddCoffeeSheet({ onAdded }: { onAdded?: () => void }) {
     setCountry("Argentina");
     setCompanions([]);
     setOtherPerson("");
-    setLoggedAt(formatLocalDatetime(new Date()));
+    setLoggedAt(formatLocalDate(new Date()));
     setNotes("");
   }
 
@@ -293,7 +293,7 @@ export function AddCoffeeSheet({ onAdded }: { onAdded?: () => void }) {
           <div className="space-y-2">
             <Label>Fecha y hora</Label>
             <Input
-              type="datetime-local"
+              type="date"
               value={loggedAt}
               onChange={(e) => setLoggedAt(e.target.value)}
             />

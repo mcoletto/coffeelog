@@ -16,15 +16,9 @@ import type { Coffee, Companion, CoffeeType, Temperature, MilkType, SweetenerTyp
 
 export type CoffeeWithCompanions = Coffee & { companions: Companion[] };
 
-function formatLocalDatetime(d: Date) {
+function formatLocalDate(d: Date) {
   const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
-function coffeeToDate(coffee: CoffeeWithCompanions): string {
-  if (coffee.loggedAt) return formatLocalDatetime(new Date(coffee.loggedAt));
-  if (coffee.month && coffee.year) return formatLocalDatetime(new Date(coffee.year, coffee.month - 1, 1, 12, 0));
-  return formatLocalDatetime(new Date());
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
 const PRESET_NAMES = COMPANION_PRESETS.map((p) => p.toLowerCase());
@@ -61,7 +55,7 @@ export function EditCoffeeSheet({ coffee, open, onOpenChange, onSaved }: EditCof
   );
   const [datePrecision, setDatePrecision] = useState<"EXACT" | "MONTH_ONLY">(coffee?.datePrecision ?? "EXACT");
   const [loggedAt, setLoggedAt] = useState(() =>
-    coffee?.loggedAt ? formatLocalDatetime(new Date(coffee.loggedAt)) : formatLocalDatetime(new Date())
+    coffee?.loggedAt ? formatLocalDate(new Date(coffee.loggedAt)) : formatLocalDate(new Date())
   );
   const [month, setMonth] = useState<number>(coffee?.month ?? new Date().getMonth() + 1);
   const [year, setYear]   = useState<number>(coffee?.year ?? new Date().getFullYear());
@@ -97,7 +91,7 @@ export function EditCoffeeSheet({ coffee, open, onOpenChange, onSaved }: EditCof
           companions: allCompanions,
           datePrecision,
           ...(datePrecision === "EXACT"
-            ? { loggedAt: new Date(loggedAt).toISOString(), month: null, year: null }
+            ? { loggedAt: new Date(loggedAt + "T12:00:00").toISOString(), month: null, year: null }
             : { loggedAt: null, month, year }),
           notes: notes.trim() || null,
         }),
@@ -292,7 +286,7 @@ export function EditCoffeeSheet({ coffee, open, onOpenChange, onSaved }: EditCof
             </div>
             {datePrecision === "EXACT" ? (
               <Input
-                type="datetime-local"
+                type="date"
                 value={loggedAt}
                 onChange={(e) => setLoggedAt(e.target.value)}
               />
