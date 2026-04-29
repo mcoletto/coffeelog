@@ -6,7 +6,7 @@ import { z } from "zod";
 
 const UpdateSchema = z.object({
   coffeeType:      z.enum(["CAFE_CON_LECHE","FLAT_WHITE","ICED_COFFEE_LATTE","CAPUCCINO","ESPRESSO","AMERICANO","LATTE","MOCHA","OTRO"]).optional(),
-  coffeeTypeOther: z.string().optional(),
+  coffeeTypeOther: z.string().nullable().optional(),
   temperature:     z.enum(["CALIENTE","FRIO"]).optional(),
   milkType:        z.enum(["ENTERA","DESCREMADA","VEGETAL","SIN_LECHE"]).optional(),
   sweetener:       z.enum(["AZUCAR","EDULCORANTE","SIN_AZUCAR"]).optional(),
@@ -29,27 +29,32 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
 }
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const body = await req.json();
-  const data = UpdateSchema.parse(body);
-  const { companions, loggedAt, ...rest } = data;
+  try {
+    const { id } = await params;
+    const body = await req.json();
+    const data = UpdateSchema.parse(body);
+    const { companions, loggedAt, ...rest } = data;
 
-  const coffee = await prisma.coffee.update({
-    where: { id },
-    data: {
-      ...rest,
-      loggedAt: loggedAt ? new Date(loggedAt) : undefined,
-      ...(companions !== undefined && {
-        companions: {
-          deleteMany: {},
-          create: companions.map((name) => ({ name })),
-        },
-      }),
-    },
-    include: { companions: true },
-  });
+    const coffee = await prisma.coffee.update({
+      where: { id },
+      data: {
+        ...rest,
+        ...(loggedAt && { loggedAt: new Date(loggedAt), datePrecision: "EXACT" }),
+        ...(companions !== undefined && {
+          companions: {
+            deleteMany: {},
+            create: companions.map((name) => ({ name })),
+          },
+        }),
+      },
+      include: { companions: true },
+    });
 
-  return NextResponse.json(coffee);
+    return NextResponse.json(coffee);
+  } catch (err) {
+    console.error("PUT /api/coffees/[id] error:", err);
+    return NextResponse.json({ error: String(err) }, { status: 400 });
+  }
 }
 
 export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
