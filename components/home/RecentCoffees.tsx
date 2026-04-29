@@ -1,8 +1,7 @@
 "use client";
-import { formatCoffeeDate, formatDateGroup } from "@/lib/utils";
+import { formatCoffeeDate, formatDateGroup, toArgDateStr } from "@/lib/utils";
 import { COFFEE_TYPE_LABELS } from "@/lib/coffee-types";
 import { Badge } from "@/components/ui/badge";
-import { isToday } from "date-fns";
 import type { Coffee, Companion } from "@prisma/client";
 
 type CoffeeWithCompanions = Coffee & { companions: Companion[] };
@@ -12,8 +11,9 @@ interface RecentCoffeesProps {
 }
 
 export function RecentCoffees({ coffees }: RecentCoffeesProps) {
+  const todayStr = toArgDateStr(new Date());
   const nonToday = coffees.filter(
-    (c) => !(c.datePrecision === "EXACT" && c.loggedAt && isToday(new Date(c.loggedAt)))
+    (c) => !(c.datePrecision === "EXACT" && c.loggedAt && toArgDateStr(new Date(c.loggedAt)) === todayStr)
   );
 
   if (nonToday.length === 0) return null;

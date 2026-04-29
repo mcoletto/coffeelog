@@ -56,8 +56,9 @@ export function HistorialClient({ initialCoffees }: HistorialClientProps) {
 
     function toMonthKey(c: CoffeeWithCompanions): string {
       if (c.loggedAt) {
-        const d = new Date(c.loggedAt);
-        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+        const argStr = new Date(c.loggedAt).toLocaleDateString("en-CA", { timeZone: "America/Argentina/Buenos_Aires" });
+        const [y, m] = argStr.split("-");
+        return `${y}-${m}`;
       }
       if (c.month && c.year) return `${c.year}-${String(c.month).padStart(2, "0")}`;
       return "0000-00";

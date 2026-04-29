@@ -17,8 +17,7 @@ import type { Coffee, Companion, CoffeeType, Temperature, MilkType, SweetenerTyp
 export type CoffeeWithCompanions = Coffee & { companions: Companion[] };
 
 function formatLocalDate(d: Date) {
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  return d.toLocaleDateString("en-CA", { timeZone: "America/Argentina/Buenos_Aires" });
 }
 
 const PRESET_NAMES = COMPANION_PRESETS.map((p) => p.toLowerCase());
