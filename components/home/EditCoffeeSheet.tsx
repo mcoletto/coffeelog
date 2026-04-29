@@ -61,6 +61,14 @@ export function EditCoffeeSheet({ coffee, open, onOpenChange, onSaved }: EditCof
   const [year, setYear]   = useState<number>(coffee?.year ?? new Date().getFullYear());
   const [notes, setNotes] = useState(coffee?.notes ?? "");
 
+  function handleCoffeeTypeChange(type: CoffeeType) {
+    setCoffeeType(type);
+    const withMilk = new Set(["CAFE_CON_LECHE","FLAT_WHITE","ICED_COFFEE_LATTE","CAPUCCINO","LATTE","MOCHA"]);
+    const noMilk   = new Set(["ESPRESSO","AMERICANO"]);
+    if (withMilk.has(type)) setMilkType("ENTERA");
+    else if (noMilk.has(type)) setMilkType("SIN_LECHE");
+  }
+
   function toggleCompanion(name: string) {
     setCompanions((prev) =>
       prev.includes(name) ? prev.filter((c) => c !== name) : [...prev, name]
@@ -125,7 +133,7 @@ export function EditCoffeeSheet({ coffee, open, onOpenChange, onSaved }: EditCof
             <Label>Tipo de café</Label>
             <div className="grid grid-cols-3 gap-2">
               {ALL_COFFEE_TYPES.map((type) => (
-                <button key={type} type="button" onClick={() => setCoffeeType(type)}
+                <button key={type} type="button" onClick={() => handleCoffeeTypeChange(type)}
                   className={cn(
                     "rounded-xl border px-2 py-2.5 text-xs font-medium text-center transition-all",
                     coffeeType === type
