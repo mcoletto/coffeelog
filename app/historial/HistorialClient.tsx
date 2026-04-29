@@ -2,13 +2,14 @@
 import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Trash2, SlidersHorizontal, X, Pencil } from "lucide-react";
+import { Trash2, SlidersHorizontal, X, Pencil, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatCoffeeDate } from "@/lib/utils";
 import { COFFEE_TYPE_LABELS } from "@/lib/coffee-types";
 import { EditCoffeeSheet, type CoffeeWithCompanions } from "@/components/home/EditCoffeeSheet";
+import { AddCoffeeSheet } from "@/components/home/AddCoffeeSheet";
 import type { Coffee, Companion, CoffeeType, ContextType } from "@prisma/client";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 type _unused = Coffee | Companion; // keep imports used
@@ -22,6 +23,7 @@ export function HistorialClient({ initialCoffees }: HistorialClientProps) {
   const router = useRouter();
   const [coffees, setCoffees] = useState<CoffeeWithCompanions[]>(initialCoffees);
   const [editing, setEditing] = useState<CoffeeWithCompanions | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [filterType, setFilterType]       = useState<CoffeeType | "ALL">("ALL");
   const [filterContext, setFilterContext] = useState<ContextType | "ALL">("ALL");
@@ -97,6 +99,13 @@ export function HistorialClient({ initialCoffees }: HistorialClientProps) {
 
   return (
     <div className="space-y-4">
+      <AddCoffeeSheet
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        onAdded={() => {
+          fetch("/api/coffees").then((r) => r.json()).then(setCoffees).catch(() => {});
+        }}
+      />
       <EditCoffeeSheet
         key={editing?.id ?? "none"}
         coffee={editing}
@@ -237,6 +246,14 @@ export function HistorialClient({ initialCoffees }: HistorialClientProps) {
           ))}
         </div>
       )}
+      {/* FAB */}
+      <button
+        onClick={() => setAddOpen(true)}
+        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg active:scale-95 transition-transform"
+        aria-label="Agregar café"
+      >
+        <Plus className="h-6 w-6" />
+      </button>
     </div>
   );
 }

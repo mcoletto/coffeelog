@@ -21,9 +21,19 @@ function formatLocalDate(d: Date) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-export function AddCoffeeSheet({ onAdded }: { onAdded?: () => void }) {
+export function AddCoffeeSheet({
+  onAdded,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
+}: {
+  onAdded?: () => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = controlledOnOpenChange ?? setInternalOpen;
   const [loading, setLoading] = useState(false);
 
   const [coffeeType, setCoffeeType]   = useState<CoffeeType>("CAFE_CON_LECHE");
@@ -38,6 +48,14 @@ export function AddCoffeeSheet({ onAdded }: { onAdded?: () => void }) {
   const [otherPerson, setOtherPerson] = useState("");
   const [loggedAt, setLoggedAt]       = useState(formatLocalDate(new Date()));
   const [notes, setNotes]             = useState("");
+
+  function handleCoffeeTypeChange(type: CoffeeType) {
+    setCoffeeType(type);
+    const withMilk = new Set(["CAFE_CON_LECHE","FLAT_WHITE","ICED_COFFEE_LATTE","CAPUCCINO","LATTE","MOCHA"]);
+    const noMilk   = new Set(["ESPRESSO","AMERICANO"]);
+    if (withMilk.has(type)) setMilkType("ENTERA");
+    else if (noMilk.has(type)) setMilkType("SIN_LECHE");
+  }
 
   function toggleCompanion(name: string) {
     setCompanions((prev) =>
@@ -125,7 +143,7 @@ export function AddCoffeeSheet({ onAdded }: { onAdded?: () => void }) {
                 <button
                   key={type}
                   type="button"
-                  onClick={() => setCoffeeType(type)}
+                  onClick={() => handleCoffeeTypeChange(type)}
                   className={cn(
                     "rounded-xl border px-2 py-2.5 text-xs font-medium text-center transition-all",
                     coffeeType === type
