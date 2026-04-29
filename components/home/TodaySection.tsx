@@ -1,6 +1,4 @@
 "use client";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
 import { COFFEE_TYPE_LABELS } from "@/lib/coffee-types";
 import { formatCoffeeDate } from "@/lib/utils";
 import type { Coffee, Companion } from "@prisma/client";
@@ -12,8 +10,12 @@ interface TodaySectionProps {
 }
 
 export function TodaySection({ coffees }: TodaySectionProps) {
-  const now = new Date();
-  const dateLabel = format(now, "EEEE d 'de' MMMM", { locale: es });
+  const dateLabel = new Date().toLocaleDateString("es-AR", {
+    timeZone: "America/Argentina/Buenos_Aires",
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
 
   return (
     <section className="space-y-4">

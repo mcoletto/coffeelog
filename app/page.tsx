@@ -1,22 +1,11 @@
-export const dynamic = "force-dynamic";
-
-import { coffeesToday, recentCoffees } from "@/lib/stats";
 import { greetingByHour } from "@/lib/utils";
-import { TodaySection } from "@/components/home/TodaySection";
-import { RecentCoffees } from "@/components/home/RecentCoffees";
-import { AddCoffeeSheet } from "@/components/home/AddCoffeeSheet";
+import { HomeClient } from "./HomeClient";
 
-export default async function HomePage() {
-  const [today, recent] = await Promise.all([
-    coffeesToday(),
-    recentCoffees(10),
-  ]);
-
+export default function HomePage() {
   const greeting = greetingByHour();
 
   return (
     <div className="px-5 pt-10 pb-6 space-y-8">
-      {/* Greeting */}
       <header className="space-y-1">
         <p className="text-xs text-muted-foreground uppercase tracking-widest">
           {greeting}
@@ -27,14 +16,7 @@ export default async function HomePage() {
         </div>
       </header>
 
-      {/* Today */}
-      <TodaySection coffees={today} />
-
-      {/* Add button */}
-      <AddCoffeeSheet />
-
-      {/* Recent */}
-      <RecentCoffees coffees={recent} />
+      <HomeClient />
     </div>
   );
 }
